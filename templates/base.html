@@ -9,6 +9,30 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
+
+<script>
+    function refreshIfStale() {
+        const footer = document.getElementById("cache-footer");
+        if (!footer) return;
+
+        const cacheTime = Number(footer.dataset.cacheTime) * 1000;
+        const now = Date.now();
+
+        const tenMinutes = 10 * 60 * 1000;
+
+        if (now - cacheTime > tenMinutes) {
+            window.location.reload();
+        }
+    }
+
+    window.addEventListener("pageshow", refreshIfStale);
+    document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) {
+            refreshIfStale();
+        }
+    });
+</script>
+
 <body>
 
 <nav class="top-tabs">
@@ -21,8 +45,8 @@
 {% block content %}
 {% endblock %}
 
-<footer class="footer-cache">
-    Last Cache: {{ cache_time }} LT
+<footer class="footer-cache" id="cache-footer" data-cache-time="{{ cache_epoch }}">
+    Data Updated: {{ cache_time }} LT
 </footer>
 
 </body>

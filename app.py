@@ -36,8 +36,12 @@ def c_to_f(temp_c):
     except (ValueError, TypeError):
         return "N/A"
 
-def get_cache_time():
-    return datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%d %b %Y %H%M")
+def get_cache_times():
+    now = datetime.now(ZoneInfo("America/Los_Angeles"))
+    return {
+        "display": now.strftime("%d %b %Y %H%M"),
+        "epoch": int(now.timestamp())
+    }
 
 CPAOA = {
     "name": "Camp Pendleton Amphibious Operation Area",
@@ -62,7 +66,7 @@ CPAOA = {
 @app.route("/")
 @cache.cached(timeout=600)
 def home():
-    cache_time = get_cache_time()
+    cache_times = get_cache_times()
 
     land = get_forecast(
         CPAOA["land"]["lat"],
@@ -134,13 +138,14 @@ def home():
         "index.html",
         oparea=CPAOA,
         brief=brief,
-        cache_time=cache_time
+        cache_time=cache_times["display"],
+        cache_epoch=cache_times["epoch"]
     )
 
 @app.route("/data")
 @cache.cached(timeout=600)
 def data():
-    cache_time = get_cache_time()
+    cache_times = get_cache_times()
 
     land = get_forecast(
         CPAOA["land"]["lat"],
@@ -187,7 +192,8 @@ def data():
         buoys=buoys,
         current=current,
         tides=tides,
-        cache_time = get_cache_time()
+        cache_time=cache_times["display"],
+        cache_epoch=cache_times["epoch"]
     )
 
 

@@ -4,3 +4,4 @@ beautifulsoup4
 astral
 ephem
 gunicorn
+Flask-Caching

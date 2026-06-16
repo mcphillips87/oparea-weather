@@ -6,8 +6,13 @@ from services.ndbc import get_buoy_wave_data, get_buoy_current_data
 from services.tides import get_tide_predictions
 from services.alerts import get_alerts
 from services.astro import get_sun_moon
+from flask_caching import Cache
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 app = Flask(__name__)
+
+cache = Cache(app, config={"CACHE_TYPE": "SimpleCache"})
 
 def mph_to_knots(wind_text):
     parts = wind_text.split()
@@ -31,6 +36,9 @@ def c_to_f(temp_c):
     except (ValueError, TypeError):
         return "N/A"
 
+def get_cache_time():
+    return datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%d %b %Y %H%M")
+
 CPAOA = {
     "name": "Camp Pendleton Amphibious Operation Area",
     "land": {
@@ -52,7 +60,10 @@ CPAOA = {
 }
 
 @app.route("/")
+@cache.cached(timeout=600)
 def home():
+    cache_time = get_cache_time()
+
     land = get_forecast(
         CPAOA["land"]["lat"],
         CPAOA["land"]["lon"]
@@ -122,11 +133,15 @@ def home():
     return render_template(
         "index.html",
         oparea=CPAOA,
-        brief=brief
+        brief=brief,
+        cache_time=cache_time
     )
 
 @app.route("/data")
+@cache.cached(timeout=600)
 def data():
+    cache_time = get_cache_time()
+
     land = get_forecast(
         CPAOA["land"]["lat"],
         CPAOA["land"]["lon"]
@@ -171,7 +186,8 @@ def data():
         forecast_periods=forecast_periods,
         buoys=buoys,
         current=current,
-        tides=tides
+        tides=tides,
+        cache_time = get_cache_time()
     )
 
 

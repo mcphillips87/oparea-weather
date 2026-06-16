@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>{{ oparea.name }}</h1>
+
+<section class="brief-card">
+    <h2>Current Conditions</h2>
+
+    <p><strong>LAND WEATHER FORECAST:</strong> {{ brief.weather_forecast }}</p>
+    <p><strong>MARINE WEATHER FORECAST:</strong> {{ brief.marine_weather }}</p>
+    <p><strong>VISIBILITY:</strong> {{ brief.visibility }}</p>
+
+    <h3>AIR TEMPERATURE</h3>
+    <p><strong>L:</strong> {{ brief.low_temp }}°F</p>
+    <p><strong>H:</strong> {{ brief.high_temp }}°F</p>
+    <p><strong>BAROMETER:</strong> {{ brief.barometer }}</p>
+
+    <p><strong>SEA TEMPERATURE:</strong> {{ brief.sea_temp }} °F</p>
+
+    <h3>WIND</h3>
+    <p><strong>LAND:</strong> {{ brief.land_wind }}</p>
+    <p><strong>MARINE:</strong> {{ brief.sea_wind }}</p>
+
+    <h3>SEA FORECAST</h3>
+    <p><strong>SEAS:</strong> {{ brief.seas }}</p>
+
+    <h3>SWH</h3>
+    <p><strong>46224:</strong> {{ brief.buoy_46224 }}</p>
+    <p><strong>46275:</strong> {{ brief.buoy_46275 }}</p>
+
+    <h3>CURRENT</h3>
+    <p>{{ brief.current }}</p>
+
+    <h3>SUN / MOON</h3>
+
+    <p><strong>SUNRISE:</strong> {{ brief.astro.sunrise }}</p>
+    <p><strong>SUNSET:</strong> {{ brief.astro.sunset }}</p>
+
+    <p><strong>MOONRISE:</strong>
+        {{ brief.astro.moonrise_today }}
+        / ND {{ brief.astro.moonrise_tomorrow }}
+    </p>
+
+    <p><strong>MOONSET:</strong>
+        {{ brief.astro.moonset_today }}
+        / ND {{ brief.astro.moonset_tomorrow }}
+    </p>
+
+    <p><strong>CURRENT ILLUMINATION:</strong>
+        {{ brief.astro.moon_current }}%
+    </p>
+
+    <p><strong>NIGHT MAX ILLUMINATION:</strong>
+        {{ brief.astro.moon_night_max }}%
+    </p>
+
+    <h3>LIGHT WINDOWS</h3>
+
+    <p><strong>CIVIL TWILIGHT (AM):</strong> {{ brief.astro.civil_dawn }}</p>
+    <p><strong>NAUTICAL TWILIGHT (AM):</strong> {{ brief.astro.nautical_dawn }}</p>
+    <p><strong>ASTRONOMICAL TWILIGHT (AM):</strong> {{ brief.astro.astronomical_dawn }}</p>
+
+    <p><strong>CIVIL TWILIGHT (PM):</strong> {{ brief.astro.civil_dusk }}</p>
+    <p><strong>NAUTICAL TWILIGHT (PM):</strong> {{ brief.astro.nautical_dusk }}</p>
+    <p><strong>ASTRONOMICAL TWILIGHT (PM):</strong> {{ brief.astro.astronomical_dusk }}</p>
+
+    <h3>TIDES</h3>
+    {% if brief.tides.error %}
+        <p>{{ brief.tides.error }}</p>
+    {% else %}
+        {% for tide in brief.tides.predictions[:4] %}
+            <p>{{ tide.t }} - {% if tide.type == "H" %}High{% else %}Low{% endif %}: {{ tide.v }} ft</p>
+        {% endfor %}
+    {% endif %}
+
+    <h3>MOON BY HOUR</h3>
+
+    {% for hour in brief.astro.hourly_moon %}
+    <p>
+        {{ hour.time }} —
+        {{ hour.illumination }}%
+        {% if hour.moon_up %}
+            (Above Horizon)
+        {% else %}
+            (Below Horizon)
+        {% endif %}
+    </p>
+    {% endfor %}
+</section>
+
+{% endblock %}

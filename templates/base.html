@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CPAOA Weather</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<nav class="top-tabs">
+    <a href="/">Current</a>
+    <a href="/today">Today</a>
+    <a href="/tomorrow">Tomorrow</a>
+    <a href="/data">Data</a>
+</nav>
+
+{% block content %}
+{% endblock %}
+
+</body>
+</html>

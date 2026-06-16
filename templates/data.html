@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>{{ oparea.name }}</h1>
+
+    <h1>{{ oparea.name }}</h1>
+
+    <h2 class="section-title">Active Advisories</h2>
+    {% if alerts.error %}
+        <p>{{ alerts.error }}</p>
+    {% elif not alerts.alerts %}
+        <p>No active advisories.</p>
+    {% else %}
+        {% for alert in alerts.alerts %}
+            <h3 class="alert-card">{{ alert.properties.event }}</h3>
+            <p><strong>Severity:</strong> {{ alert.properties.severity }}</p>
+            <p><strong>Headline:</strong> {{ alert.properties.headline }}</p>
+            <hr>
+        {% endfor %}
+    {% endif %}
+
+    <h2 class="section-title">Forecast</h2>
+    {% for item in forecast_periods %}
+        <div class="forecast-card">
+        <h3>{{ item.land.name }}</h3>
+
+        <h4>Land</h4>
+        <p>Temp: {{ item.land.temperature }}°F</p>
+        <p>Wind: {{ item.land.windSpeed }} {{ item.land.windDirection }}</p>
+        <p>{{ item.land.shortForecast }}</p>
+        </div>
+
+        <h4>Marine</h4>
+        <p>{{ item.marine.forecast }}</p>
+
+        <hr>
+    {% endfor %}
+
+    <h2>Buoy Observations</h2>
+    {% for buoy in buoys %}
+        <div class="buoy-card">
+        <h3>Buoy {{ buoy.station }} Waves</h3>
+        <p>Wave Height: {{ buoy.wave_height }} ft</p>
+        <p>Dominant Period: {{ buoy.dominant_period }} sec</p>
+        <p>Average Period: {{ buoy.average_period }} sec</p>
+        <p>Water Temp: {{ buoy.water_temp }} °C</p>
+        </div>
+        <hr>
+    {% endfor %}
+
+    <div class="current-card">
+    <h2>Current - Buoy 46275</h2>
+    {% if current.error %}
+        <p>{{ current.error }}</p>
+    {% else %}
+        <p>Time: {{ current.year }}-{{ current.month }}-{{ current.day }} {{ current.hour }}:{{ current.minute }} UTC</p>
+        <p>Depth Bin: {{ current.depth_bin }}</p>
+        <p>Current Direction: {{ current.direction }}°</p>
+        <p>Current Speed: {{ current.speed_knots }} kt ({{ current.speed_cms }} cm/s)</p>
+    {% endif %}
+    </div>
+
+    <div class="current-card">
+    <h2>Tides</h2>
+    {% if tides.error %}
+        <p>{{ tides.error }}</p>
+    {% else %}
+        {% for tide in tides.predictions %}
+            <p>{{ tide.t }} - {% if tide.type == "H" %}High{% else %}Low{% endif %}: {{ tide.v }} ft</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+{% endblock %}

@@ -25,18 +25,33 @@ def get_buoy_wave_data(station):
         return {"error": f"No wave data for {station}"}
 
     headers = lines[0].replace("#", "").split()
-    values = lines[2].split()
 
-    data = dict(zip(headers, values))
+    for line in lines[2:30]:
+        values = line.split()
+
+        if len(values) < len(headers):
+            continue
+
+        data = dict(zip(headers, values))
+
+        raw_wave = data.get("WVHT")
+
+        if raw_wave not in ["MM", "999", "999.0", "99.0", None]:
+            return {
+                "station": station,
+                "wave_height": meters_to_feet(raw_wave),
+                "dominant_period": clean(data.get("DPD")),
+                "average_period": clean(data.get("APD")),
+                "water_temp": clean(data.get("WTMP")),
+            }
 
     return {
         "station": station,
-        "wave_height": meters_to_feet(clean(data.get("WVHT"))),
-        "dominant_period": clean(data.get("DPD")),
-        "average_period": clean(data.get("APD")),
-        "water_temp": clean(data.get("WTMP")),
+        "wave_height": "N/A",
+        "dominant_period": "N/A",
+        "average_period": "N/A",
+        "water_temp": "N/A",
     }
-
 
 def get_buoy_current_data(station):
     url = f"https://www.ndbc.noaa.gov/data/realtime2/{station}.adcp"

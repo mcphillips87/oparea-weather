@@ -9,6 +9,7 @@ from services.astro import get_sun_moon
 from flask_caching import Cache
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from services.surf import get_surf_forecast
 
 app = Flask(__name__)
 
@@ -42,6 +43,41 @@ def get_cache_times():
         "display": now.strftime("%d %b %Y %H%M"),
         "epoch": int(now.timestamp())
     }
+
+def get_relevant_tides(tides):
+    """
+    Returns the last completed tide plus the next 3 upcoming tides.
+    Tide times from NOAA are local because services.tides uses lst_ldt.
+    """
+    if tides.get("error"):
+        return []
+
+    now = datetime.now(ZoneInfo("America/Los_Angeles"))
+    predictions = tides.get("predictions", [])
+
+    past = []
+    future = []
+
+    for tide in predictions:
+        try:
+            tide_time = datetime.strptime(tide["t"], "%Y-%m-%d %H:%M")
+            tide_time = tide_time.replace(tzinfo=ZoneInfo("America/Los_Angeles"))
+        except (KeyError, ValueError, TypeError):
+            continue
+
+        if tide_time <= now:
+            past.append(tide)
+        else:
+            future.append(tide)
+
+    relevant = []
+
+    if past:
+        relevant.append(past[-1])
+
+    relevant.extend(future[:3])
+
+    return relevant
 
 CPAOA = {
     "name": "Camp Pendleton Amphibious Operation Area",
@@ -88,6 +124,7 @@ def home():
         CPAOA["tide"]["station"],
         days=2
     )
+    relevant_tides = get_relevant_tides(tides)
 
     alerts = get_alerts(
         CPAOA["land"]["lat"],
@@ -102,6 +139,8 @@ def home():
     observation = get_current_observation(
         CPAOA["station"]
     )
+
+    surf = get_surf_forecast()
 
     land_periods = land["properties"]["periods"]
     marine_periods = marine["periods"]
@@ -130,6 +169,8 @@ def home():
         "buoy_46275": f"{buoy_46275.get('wave_height', 'N/A')} ft @ {buoy_46275.get('dominant_period', 'N/A')} sec",
         "current": f"{current.get('direction', 'N/A')}° @ {current.get('speed_knots', 'N/A')} kt ({current.get('speed_cms', 'N/A')} cm/s)",
         "tides": tides,
+        "relevant_tides": relevant_tides,
+        "surf_height": surf.get("san_diego_surf", "N/A"),
         "alerts": alerts,
         "astro": astro,
     }
@@ -167,6 +208,8 @@ def data():
         days=7
     )
 
+    surf = get_surf_forecast()
+
     buoys = []
     for station in CPAOA["buoys"]:
         buoys.append(get_buoy_wave_data(station))
@@ -192,6 +235,7 @@ def data():
         buoys=buoys,
         current=current,
         tides=tides,
+        surf=surf,
         cache_time=cache_times["display"],
         cache_epoch=cache_times["epoch"]
     )

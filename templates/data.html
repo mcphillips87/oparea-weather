@@ -1,10 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <h1>{{ oparea.name }}</h1>
-
-    <h1>{{ oparea.name }}</h1>
 
     <h2 class="section-title">Active Advisories</h2>
     {% if alerts.error %}
@@ -61,15 +60,68 @@
     {% endif %}
     </div>
 
-    <div class="current-card">
-    <h2>Tides</h2>
-    {% if tides.error %}
-        <p>{{ tides.error }}</p>
-    {% else %}
-        {% for tide in tides.predictions %}
-            <p>{{ tide.t }} - {% if tide.type == "H" %}High{% else %}Low{% endif %}: {{ tide.v }} ft</p>
-        {% endfor %}
+    <h2 class="section-title">Surf Forecast</h2>
+
+    <div class="forecast-card">
+        {% if surf.error %}
+            <p>{{ surf.error }}</p>
+        {% else %}
+            <pre class="surf-text">{{ surf.san_diego_section }}</pre>
+        {% endif %}
     </div>
+
+    <div class="current-card">
+        <h2>Tides</h2>
+        {% if tides.error %}
+            <p>{{ tides.error }}</p>
+        {% else %}
+            {% for tide in tides.predictions %}
+                <p>{{ tide.t }} - {% if tide.type == "H" %}High{% else %}Low{% endif %}: {{ tide.v }} ft</p>
+            {% endfor %}
+
+            <h2>Tide Graph</h2>
+            <canvas id="dataTideChart"></canvas>
+        {% endif %}
+    </div>
+
+    {% if not tides.error %}
+    <script>
+    const dataTideData = {{ tides.predictions | tojson }};
+    const dataTideLabels = dataTideData.map(t => t.t);
+    const dataTideHeights = dataTideData.map(t => Number(t.v));
+
+    new Chart(document.getElementById("dataTideChart"), {
+        type: "line",
+        data: {
+            labels: dataTideLabels,
+            datasets: [{
+                label: "Tide height ft",
+                data: dataTideHeights,
+                tension: 0.35,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    title: {
+                        display: true,
+                        text: "Feet"
+                    }
+                },
+                x: {
+                    ticks: {
+                        maxTicksLimit: 10
+                    }
+                }
+            }
+        }
+    });
+    </script>
     {% endif %}
 
 {% endblock %}

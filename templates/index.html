@@ -1,12 +1,55 @@
 {% extends "base.html" %}
 
 {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <h1>{{ oparea.name }}</h1>
 
 <section class="brief-card">
+
     <h2>Current Conditions</h2>
 
+    <h3>ACTIVE ADVISORIES</h3>
+    {% if brief.alerts.error %}
+        <p>{{ brief.alerts.error }}</p>
+    {% elif not brief.alerts.alerts %}
+        <p>No active advisories.</p>
+    {% else %}
+        {% for alert in brief.alerts.alerts %}
+            <details class="alert-card">
+                <summary>
+                    <strong>{{ alert.properties.event }}</strong>
+                    {% if alert.properties.severity %}
+                        — {{ alert.properties.severity }}
+                    {% endif %}
+                </summary>
+
+                {% if alert.properties.headline %}
+                    <p><strong>Headline:</strong> {{ alert.properties.headline }}</p>
+                {% endif %}
+
+                {% if alert.properties.effective %}
+                    <p><strong>Effective:</strong> {{ alert.properties.effective }}</p>
+                {% endif %}
+
+                {% if alert.properties.expires %}
+                    <p><strong>Expires:</strong> {{ alert.properties.expires }}</p>
+                {% endif %}
+
+                {% if alert.properties.description %}
+                    <p><strong>Message:</strong></p>
+                    <pre class="alert-text">{{ alert.properties.description }}</pre>
+                {% endif %}
+
+                {% if alert.properties.instruction %}
+                    <p><strong>Instruction:</strong></p>
+                    <pre class="alert-text">{{ alert.properties.instruction }}</pre>
+                {% endif %}
+            </details>
+        {% endfor %}
+    {% endif %}
+
+    <h3>WEATHER FORECAST</h3>
     <p><strong>LAND WEATHER FORECAST:</strong> {{ brief.weather_forecast }}</p>
     <p><strong>MARINE WEATHER FORECAST:</strong> {{ brief.marine_weather }}</p>
     <p><strong>VISIBILITY:</strong> {{ brief.visibility }}</p>
@@ -16,6 +59,7 @@
     <p><strong>H:</strong> {{ brief.high_temp }}°F</p>
     <p><strong>BAROMETER:</strong> {{ brief.barometer }}</p>
 
+    <h3>SEA TEMPERATURE</h3>
     <p><strong>SEA TEMPERATURE:</strong> {{ brief.sea_temp }} °F</p>
 
     <h3>WIND</h3>
@@ -28,6 +72,9 @@
     <h3>SWH</h3>
     <p><strong>46224:</strong> {{ brief.buoy_46224 }}</p>
     <p><strong>46275:</strong> {{ brief.buoy_46275 }}</p>
+
+    <h3>SURF</h3>
+    <p><strong>SURF:</strong> {{ brief.surf_height }}</p>
 
     <h3>CURRENT</h3>
     <p>{{ brief.current }}</p>
@@ -72,6 +119,57 @@
         {% for tide in brief.tides.predictions[:4] %}
             <p>{{ tide.t }} - {% if tide.type == "H" %}High{% else %}Low{% endif %}: {{ tide.v }} ft</p>
         {% endfor %}
+    {% endif %}
+
+   <div class="card">
+      <h2>Tide Graph</h2>
+
+      {% if brief.tides.error %}
+        <p>{{ brief.tides.error }}</p>
+      {% else %}
+        <canvas id="tideChart"></canvas>
+      {% endif %}
+    </div>
+
+    {% if not brief.tides.error %}
+    <script>
+    const tideData = {{ brief.tides.predictions | tojson }};
+
+    const labels = tideData.map(t => t.t);
+    const heights = tideData.map(t => Number(t.v));
+
+    new Chart(document.getElementById("tideChart"), {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "Tide height ft",
+          data: heights,
+          tension: 0.35,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            title: {
+              display: true,
+              text: "Feet"
+            }
+          },
+          x: {
+            ticks: {
+              maxTicksLimit: 5
+            }
+          }
+        }
+      }
+    });
+    </script>
     {% endif %}
 
     <h3>MOON BY HOUR</h3>

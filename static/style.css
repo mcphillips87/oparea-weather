@@ -98,3 +98,10 @@ hr {
     font-size: 1rem;
     opacity: 0.8;
 }
+
+.surf-text {
+    white-space: pre-wrap;
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+    margin: 0;
+}

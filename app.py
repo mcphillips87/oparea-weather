@@ -122,8 +122,10 @@ def home():
 
     tides = get_tide_predictions(
         CPAOA["tide"]["station"],
-        days=2
+        days=7,
+        days_back=1
     )
+
     relevant_tides = get_relevant_tides(tides)
 
     alerts = get_alerts(

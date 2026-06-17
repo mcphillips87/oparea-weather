@@ -116,7 +116,7 @@
     {% if brief.tides.error %}
         <p>{{ brief.tides.error }}</p>
     {% else %}
-        {% for tide in brief.tides.predictions[:4] %}
+        {% for tide in brief.relevant_tides %}
             <p>{{ tide.t }} - {% if tide.type == "H" %}High{% else %}Low{% endif %}: {{ tide.v }} ft</p>
         {% endfor %}
     {% endif %}
@@ -133,7 +133,7 @@
 
     {% if not brief.tides.error %}
     <script>
-    const tideData = {{ brief.tides.predictions | tojson }};
+    const tideData = {{ brief.relevant_tides | tojson }};
 
     const labels = tideData.map(t => t.t);
     const heights = tideData.map(t => Number(t.v));

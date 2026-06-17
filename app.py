@@ -196,6 +196,25 @@ def data():
         cache_epoch=cache_times["epoch"]
     )
 
+@app.route("/today")
+def today():
+    cache_times = get_cache_times()
+    return render_template(
+        "coming_soon.html",
+        page_title="Today",
+        cache_time=cache_times["display"],
+        cache_epoch=cache_times["epoch"]
+    )
+
+@app.route("/tomorrow")
+def tomorrow():
+    cache_times = get_cache_times()
+    return render_template(
+        "coming_soon.html",
+        page_title="Tomorrow",
+        cache_time=cache_times["display"],
+        cache_epoch=cache_times["epoch"]
+    )
 
 if __name__ == "__main__":
     app.run()

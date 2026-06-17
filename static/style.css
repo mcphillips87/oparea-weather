@@ -82,3 +82,19 @@ hr {
     color: #94a3b8;
     font-size: 0.85rem;
 }
+
+.coming-soon-container {
+    text-align: center;
+    margin-top: 50px;
+    color: #cbd5e1;
+}
+
+.coming-soon-container h2 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+}
+
+.coming-soon-container p {
+    font-size: 1rem;
+    opacity: 0.8;
+}

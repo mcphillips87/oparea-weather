@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 from services.nws import get_forecast, get_current_observation
 from services.marine import get_marine_point_forecast, parse_marine_forecast
@@ -16,6 +16,45 @@ app = Flask(__name__)
 logger = logging.getLogger(__name__)
 
 cache = Cache(app, config={"CACHE_TYPE": "SimpleCache"})
+
+source_cache = {
+    "surf": {
+        "data": None,
+        "updated": None,
+    },
+    "land": {
+        "data": None,
+        "updated": None,
+    },
+    "marine": {
+        "data": None,
+        "updated": None,
+    },
+    "tides": {
+        "data": None,
+        "updated": None,
+    },
+    "alerts": {
+        "data": None,
+        "updated": None,
+    },
+    "current": {
+        "data": None,
+        "updated": None,
+    },
+    "observation": {
+        "data": None,
+        "updated": None,
+    },
+    "buoy_46224": {
+        "data": None,
+        "updated": None,
+    },
+    "buoy_46275": {
+        "data": None,
+        "updated": None,
+    },
+}
 
 def mph_to_knots(wind_text):
     parts = wind_text.split()
@@ -44,6 +83,77 @@ def get_cache_times():
     return {
         "display": now.strftime("%d %b %Y %H%M"),
         "epoch": int(now.timestamp())
+    }
+
+def format_data_age(updated_time):
+    if updated_time is None:
+        return "unknown age"
+
+    now = datetime.now(ZoneInfo("America/Los_Angeles"))
+    age = now - updated_time
+    total_minutes = max(0, int(age.total_seconds() // 60))
+
+    if total_minutes < 1:
+        return "less than 1 minute ago"
+
+    if total_minutes == 1:
+        return "1 minute ago"
+
+    if total_minutes < 60:
+        return f"{total_minutes} minutes ago"
+
+    hours, minutes = divmod(total_minutes, 60)
+
+    if hours == 1:
+        hour_text = "1 hour"
+    else:
+        hour_text = f"{hours} hours"
+
+    if minutes == 0:
+        return f"{hour_text} ago"
+
+    minute_text = "1 minute" if minutes == 1 else f"{minutes} minutes"
+    return f"{hour_text} {minute_text} ago"
+
+def use_cached_source(source_name, live_data):
+    cached = source_cache[source_name]
+    live_failed = not isinstance(live_data, dict) or bool(live_data.get("error"))
+
+    if live_failed:
+        if cached["data"] is not None:
+            logger.warning(
+                "Using cached %s data because the live source failed.",
+                source_name
+            )
+
+            updated = cached["updated"]
+
+            return {
+                "data": cached["data"],
+                "stale": True,
+                "updated_time": updated.strftime("%H%M %Z"),
+                "age": format_data_age(updated),
+            }
+
+        return {
+            "data": live_data if isinstance(live_data, dict) else {
+                "error": "Source temporarily unavailable"
+            },
+            "stale": False,
+            "updated_time": None,
+            "age": None,
+        }
+
+    cached["data"] = live_data
+    cached["updated"] = datetime.now(
+        ZoneInfo("America/Los_Angeles")
+    )
+
+    return {
+        "data": live_data,
+        "stale": False,
+        "updated_time": None,
+        "age": None,
     }
 
 def get_relevant_tides(tides):
@@ -102,7 +212,7 @@ CPAOA = {
 }
 
 @app.route("/")
-@cache.cached(timeout=600)
+@cache.cached(timeout=600, query_string=True)
 def home():
     cache_times = get_cache_times()
 
@@ -127,8 +237,6 @@ def home():
         days=7,
         days_back=1
     )
-
-    relevant_tides = get_relevant_tides(tides)
 
     alerts = get_alerts(
         CPAOA["land"]["lat"],
@@ -158,6 +266,115 @@ def home():
     )
 
     surf = get_surf_forecast()
+
+    test_stale_param = request.args.get("test_stale", "")
+    if test_stale_param == "1":
+        test_stale_param = "surf"
+
+    # Accept one source or multiple comma-separated sources, for example:
+    # /?test_stale=observation,current,buoy_46275
+    test_stale_sources = {
+        source.strip()
+        for source in test_stale_param.split(",")
+        if source.strip()
+    }
+
+    if "land" in test_stale_sources:
+        land = {"error": "Temporary test failure"}
+    if "marine" in test_stale_sources:
+        marine = {"error": "Temporary test failure"}
+    if "tides" in test_stale_sources:
+        tides = {"error": "Temporary test failure"}
+    if "alerts" in test_stale_sources:
+        alerts = {"error": "Temporary test failure"}
+    if "observation" in test_stale_sources:
+        observation = {"error": "Temporary test failure"}
+    if "current" in test_stale_sources:
+        current = {"error": "Temporary test failure"}
+    if "buoy_46224" in test_stale_sources:
+        buoys[0] = {"station": "46224", "error": "Temporary test failure"}
+    if "buoy_46275" in test_stale_sources:
+        buoys[1] = {"station": "46275", "error": "Temporary test failure"}
+    if "surf" in test_stale_sources:
+        surf = {
+            "san_diego_surf": "N/A",
+            "error": "Temporary test failure"
+        }
+
+    source_results = {
+        "land": use_cached_source("land", land),
+        "marine": use_cached_source("marine", marine),
+        "tides": use_cached_source("tides", tides),
+        "alerts": use_cached_source("alerts", alerts),
+        "observation": use_cached_source("observation", observation),
+        "current": use_cached_source("current", current),
+        "buoy_46224": use_cached_source("buoy_46224", buoys[0]),
+        "buoy_46275": use_cached_source("buoy_46275", buoys[1]),
+        "surf": use_cached_source("surf", surf),
+    }
+
+    land = source_results["land"]["data"]
+    marine = source_results["marine"]["data"]
+    tides = source_results["tides"]["data"]
+    alerts = source_results["alerts"]["data"]
+    observation = source_results["observation"]["data"]
+    current = source_results["current"]["data"]
+    surf = source_results["surf"]["data"]
+    buoys = [
+        source_results["buoy_46224"]["data"],
+        source_results["buoy_46275"]["data"],
+    ]
+
+    source_labels = {
+        "land": {
+            "name": "NWS Land Forecast",
+            "affected": "Land forecast, forecast high/low temperature, and land wind",
+        },
+        "marine": {
+            "name": "NOAA Marine Forecast",
+            "affected": "Marine weather, marine wind, and forecast seas",
+        },
+        "tides": {
+            "name": "NOAA Tide Predictions",
+            "affected": "Tide times, tide heights, and tide graph",
+        },
+        "alerts": {
+            "name": "NWS Advisories",
+            "affected": "Active advisories and warning details",
+        },
+        "observation": {
+            "name": "Oceanside Weather Station (EW3174)",
+            "affected": "Visibility and barometer",
+        },
+        "current": {
+            "name": "Buoy 46275 Current",
+            "affected": "Current direction and current speed",
+        },
+        "buoy_46224": {
+            "name": "Buoy 46224",
+            "affected": "Significant wave height and dominant wave period",
+        },
+        "buoy_46275": {
+            "name": "Buoy 46275",
+            "affected": "Significant wave height, dominant wave period, and sea temperature",
+        },
+        "surf": {
+            "name": "NOAA Surf Forecast",
+            "affected": "Surf height forecast",
+        },
+    }
+
+    stale_sources = []
+    for source_name, result in source_results.items():
+        if result["stale"]:
+            stale_sources.append({
+                "name": source_labels[source_name]["name"],
+                "affected": source_labels[source_name]["affected"],
+                "updated_time": result["updated_time"],
+                "age": result["age"],
+            })
+
+    relevant_tides = get_relevant_tides(tides)
 
     land_periods = land.get("properties", {}).get("periods", [])
     marine_periods = marine.get("periods", [])
@@ -192,12 +409,14 @@ def home():
         "astro": astro,
     }
 
+
     return render_template(
         "index.html",
         oparea=CPAOA,
         brief=brief,
         cache_time=cache_times["display"],
-        cache_epoch=cache_times["epoch"]
+        cache_epoch=cache_times["epoch"],
+        stale_sources=stale_sources
     )
 
 @app.route("/data")

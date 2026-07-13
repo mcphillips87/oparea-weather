@@ -5,6 +5,19 @@
 
 <h1>{{ oparea.name }}</h1>
 
+{% if stale_sources %}
+<div class="stale-warning">
+    <strong>⚠ Using cached data:</strong>
+    {% for source in stale_sources %}
+        <div class="stale-source">
+            <strong>{{ source.name }}</strong><br>
+            Affected data: {{ source.affected }}<br>
+            Last updated {{ source.updated_time }} ({{ source.age }})
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <section class="brief-card">
 
     <h2>Current Conditions</h2>

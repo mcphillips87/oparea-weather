@@ -89,7 +89,7 @@ def get_current_observation(station_id):
             "barometer_inhg": barometer,
         }
     except (requests.RequestException, ValueError, TypeError) as exc:
-        print(f"LAND FORECAST EXCEPTION: {type(exc).__name__}: {exc}")
+        print(f"LAND OBSERVATION EXCEPTION: {type(exc).__name__}: {exc}")
         return {
             **fallback,
             "error": f"Forecast unavailable: {exc.__class__.__name__}"

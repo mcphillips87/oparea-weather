@@ -8,6 +8,17 @@ from astral.moon import moonrise, moonset
 
 import ephem
 
+def safe_moonrise(observer, day, tz):
+    try:
+        return moonrise(observer, date=day, tzinfo=tz)
+    except Exception:
+        return None
+
+def safe_moonset(observer, day, tz):
+    try:
+        return moonset(observer, date=day, tzinfo=tz)
+    except Exception:
+        return None
 
 def get_current_moon_illumination():
     local_now = datetime.now(ZoneInfo("America/Los_Angeles"))
@@ -82,11 +93,11 @@ def get_sun_moon(lat, lon):
     today_sun = sun(location.observer, date=today, tzinfo=location.timezone)
     tomorrow_sun = sun(location.observer, date=tomorrow, tzinfo=location.timezone)
 
-    moonrise_today = moonrise(location.observer, date=today, tzinfo=location.timezone)
-    moonset_today = moonset(location.observer, date=today, tzinfo=location.timezone)
+    moonrise_today = safe_moonrise(location.observer, today, location.timezone)
+    moonset_today = safe_moonset(location.observer, today, location.timezone)
 
-    moonrise_tomorrow = moonrise(location.observer, date=tomorrow, tzinfo=location.timezone)
-    moonset_tomorrow = moonset(location.observer, date=tomorrow, tzinfo=location.timezone)
+    moonrise_tomorrow = safe_moonrise(location.observer, tomorrow, location.timezone)
+    moonset_tomorrow = safe_moonset(location.observer, tomorrow, location.timezone)
 
     moon_current = get_current_moon_illumination()
 

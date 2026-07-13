@@ -1,21 +1,17 @@
 import requests
 
-
-HEADERS = {
-    "User-Agent": "AOA Weather App"
-}
+from services.http import get
 
 
 def get_alerts(lat, lon):
     url = f"https://api.weather.gov/alerts/active?point={lat},{lon}"
 
-    response = requests.get(url, headers=HEADERS, timeout=10)
+    try:
+        response = get(url)
+        if response.status_code != 200:
+            return {"error": "Failed to get alerts", "alerts": []}
 
-    if response.status_code != 200:
-        return {"error": "Failed to get alerts"}
-
-    data = response.json()
-
-    return {
-        "alerts": data.get("features", [])
-    }
+        data = response.json()
+        return {"alerts": data.get("features", [])}
+    except (requests.RequestException, ValueError) as exc:
+        return {"error": f"Alerts unavailable: {exc.__class__.__name__}", "alerts": []}

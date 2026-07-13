@@ -1,75 +1,66 @@
-import requests
 import re
+import requests
 from bs4 import BeautifulSoup
 
-
-HEADERS = {
-    "User-Agent": "AOA Weather App"
-}
+from services.http import get
 
 
 def get_marine_point_forecast(lat, lon):
     url = f"https://forecast.weather.gov/MapClick.php?lat={lat}&lon={lon}"
 
-    response = requests.get(url, headers=HEADERS)
+    try:
+        response = get(url)
+        if response.status_code != 200:
+            return {
+                "error": "Failed to get marine point forecast",
+                "status_code": response.status_code,
+                "periods": [],
+            }
 
-    if response.status_code != 200:
+        soup = BeautifulSoup(response.text, "html.parser")
+        forecast_items = soup.select("#detailed-forecast-body .row-forecast")
+
+        if not forecast_items:
+            return {"error": "Could not find detailed marine forecast", "periods": []}
+
+        periods = []
+        for item in forecast_items:
+            label = item.select_one(".forecast-label")
+            text = item.select_one(".forecast-text")
+            if label and text:
+                periods.append({
+                    "name": label.get_text(strip=True),
+                    "forecast": text.get_text(" ", strip=True),
+                })
+
+        return {"url": url, "periods": periods}
+    except requests.RequestException as exc:
         return {
-            "error": "Failed to get marine point forecast",
-            "status_code": response.status_code
+            "error": f"Marine forecast unavailable: {exc.__class__.__name__}",
+            "periods": [],
         }
 
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    forecast_items = soup.select("#detailed-forecast-body .row-forecast")
-
-    if not forecast_items:
-        return {
-            "error": "Could not find detailed marine forecast"
-        }
-
-    periods = []
-
-    for item in forecast_items:
-        label = item.select_one(".forecast-label")
-        text = item.select_one(".forecast-text")
-
-        if label and text:
-            periods.append({
-                "name": label.get_text(strip=True),
-                "forecast": text.get_text(" ", strip=True)
-            })
-
-    return {
-        "url": url,
-        "periods": periods
-    }
 
 def parse_marine_forecast(forecast_text):
     wind_match = re.search(
         r"^(.+?\bwind[s]?\b.+?kt(?: or less)?)(?:\.|$)",
         forecast_text,
-        re.IGNORECASE
+        re.IGNORECASE,
     )
-
     wind = wind_match.group(1).strip() + "." if wind_match else "N/A"
 
     seas_match = re.search(
         r"((?:Mixed swell|Swell|Seas).*?)(?=$)",
         forecast_text,
-        re.IGNORECASE
+        re.IGNORECASE,
     )
-
     seas = seas_match.group(1).strip() if seas_match else "N/A"
 
     weather = forecast_text
-
     if wind_match:
         weather = weather.replace(wind_match.group(0), "").strip()
-
     if seas_match:
         weather = weather.replace(seas_match.group(0), "").strip()
-
     weather = weather.strip(" .")
 
     return {

@@ -8,10 +8,12 @@ from services.alerts import get_alerts
 from services.astro import get_sun_moon
 from flask_caching import Cache
 from datetime import datetime
+import logging
 from zoneinfo import ZoneInfo
 from services.surf import get_surf_forecast
 
 app = Flask(__name__)
+logger = logging.getLogger(__name__)
 
 cache = Cache(app, config={"CACHE_TYPE": "SimpleCache"})
 
@@ -133,10 +135,23 @@ def home():
         CPAOA["land"]["lon"]
     )
 
-    astro = get_sun_moon(
-        CPAOA["land"]["lat"],
-        CPAOA["land"]["lon"]
-    )
+    try:
+        astro = get_sun_moon(
+            CPAOA["land"]["lat"],
+            CPAOA["land"]["lon"]
+        )
+    except Exception:
+        logger.exception("Astronomy calculation failed")
+        astro = {
+            "sunrise": "N/A", "sunset": "N/A",
+            "moonrise_today": "N/A", "moonset_today": "N/A",
+            "moonrise_tomorrow": "N/A", "moonset_tomorrow": "N/A",
+            "moon_current": "N/A", "moon_night_max": "N/A",
+            "hourly_moon": [], "civil_dawn": "N/A",
+            "nautical_dawn": "N/A", "astronomical_dawn": "N/A",
+            "civil_dusk": "N/A", "nautical_dusk": "N/A",
+            "astronomical_dusk": "N/A",
+        }
 
     observation = get_current_observation(
         CPAOA["station"]
@@ -144,11 +159,11 @@ def home():
 
     surf = get_surf_forecast()
 
-    land_periods = land["properties"]["periods"]
-    marine_periods = marine["periods"]
+    land_periods = land.get("properties", {}).get("periods", [])
+    marine_periods = marine.get("periods", [])
 
-    first_land = land_periods[0]
-    first_marine = marine_periods[0]
+    first_land = land_periods[0] if land_periods else {}
+    first_marine = marine_periods[0] if marine_periods else {}
     parsed_marine = parse_marine_forecast(first_marine.get("forecast", ""))
 
     buoy_46224 = next((b for b in buoys if b.get("station") == "46224"), {})
@@ -218,8 +233,8 @@ def data():
 
     current = get_buoy_current_data("46275")
 
-    land_periods = land["properties"]["periods"][:6]
-    marine_periods = marine["periods"][:6]
+    land_periods = land.get("properties", {}).get("periods", [])[:6]
+    marine_periods = marine.get("periods", [])[:6]
 
     forecast_periods = []
 

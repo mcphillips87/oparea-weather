@@ -10,19 +10,23 @@ def get_forecast(lat, lon):
 
     try:
         point_response = get(point_url)
+
         if point_response.status_code != 200:
-            return {**fallback, "error": "Failed to get point data"}
+            print(
+                f"LAND POINTS FAILED: HTTP {point_response.status_code} "
+                f"URL={point_response.url}"
+            )
+            return {
+                **fallback,
+                "error": f"Failed to get point data: HTTP {point_response.status_code}"
+            }
 
         point_data = point_response.json()
         forecast_url = point_data.get("properties", {}).get("forecast")
         if not forecast_url:
             return {**fallback, "error": "Forecast URL missing"}
 
-        forecast_response = get(forecast_url)
-        if forecast_response.status_code != 200:
-            return {**fallback, "error": "Failed to get forecast"}
 
-        return forecast_response.json()
     except (requests.RequestException, ValueError, TypeError) as exc:
         return {**fallback, "error": f"Forecast unavailable: {exc.__class__.__name__}"}
 
@@ -53,5 +57,10 @@ def get_current_observation(station_id):
             "visibility_nm": "UNR",
             "barometer_inhg": barometer,
         }
-    except requests.RequestException:
-        return fallback
+    except (requests.RequestException, ValueError, TypeError) as exc:
+        print(f"LAND FORECAST EXCEPTION: {type(exc).__name__}: {exc}")
+        return {
+            **fallback,
+            "error": f"Forecast unavailable: {exc.__class__.__name__}"
+        }
+

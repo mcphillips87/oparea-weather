@@ -10,9 +10,14 @@ def get_marine_point_forecast(lat, lon):
 
     try:
         response = get(url)
+
         if response.status_code != 200:
+            print(
+                f"MARINE FAILED: HTTP {response.status_code} "
+                f"URL={response.url}"
+            )
             return {
-                "error": "Failed to get marine point forecast",
+                "error": f"Failed to get marine point forecast: HTTP {response.status_code}",
                 "status_code": response.status_code,
                 "periods": [],
             }
@@ -35,6 +40,7 @@ def get_marine_point_forecast(lat, lon):
 
         return {"url": url, "periods": periods}
     except requests.RequestException as exc:
+        print(f"MARINE EXCEPTION: {type(exc).__name__}: {exc}")
         return {
             "error": f"Marine forecast unavailable: {exc.__class__.__name__}",
             "periods": [],

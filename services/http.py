@@ -2,11 +2,12 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-DEFAULT_TIMEOUT = (2.5, 5)
+DEFAULT_TIMEOUT = (5, 10)
 
 SESSION = requests.Session()
 SESSION.headers.update({
-    "User-Agent": "CPAOA Weather App (mcphillips87@gmail.com)"
+    "User-Agent": "CPAOA Weather App (mcphillips87@gmail.com)",
+    "Connection": "close",
 })
 
 retry = Retry(
